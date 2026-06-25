@@ -2,7 +2,7 @@ import json
 
 # ---------------- LOAD DATABASE ----------------
 
-with open("buses.json", "r") as file:
+with open("bus_data.json", "r") as file:
     buses = json.load(file)
 
 # ---------------- USER INPUT ----------------
