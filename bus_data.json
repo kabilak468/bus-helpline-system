@@ -1,0 +1,20 @@
+[
+    {
+        "bus_no": "111",
+        "route": ["Gandhipuram", "Lakshmi Mills", "Peelamedu", "Saravanampatti"],
+        "eta_to_source": 7,
+        "travel_time_to_destination": 18
+    },
+    {
+        "bus_no": "102",
+        "route": ["Gandhipuram", "Hope College", "Saravanampatti"],
+        "eta_to_source": 12,
+        "travel_time_to_destination": 14
+    },
+    {
+        "bus_no": "118",
+        "route": ["Gandhipuram", "Airport", "Saravanampatti"],
+        "eta_to_source": 10,
+        "travel_time_to_destination": 16
+    }
+]
