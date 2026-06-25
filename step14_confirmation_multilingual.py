@@ -14,9 +14,9 @@ destination = input("Enter Destination Stop: ")
 
 print("\n============================")
 print("CONFIRMATION")
-print("============================")
+print("============================\n")
 
-print("\n🇬🇧 English")
+print("🇬🇧 English")
 print(f"Did you mean {source} to {destination}?")
 print("Press 1 to Confirm")
 print("Press 2 to Speak Again")
@@ -34,7 +34,7 @@ print("दोबारा बोलने के लिए 2 दबाएं")
 choice = input("\nEnter Choice: ")
 
 if choice != "1":
-    print("🔄 Please try again")
+    print("Please speak again.")
     exit()
 
 # ---------------- FIND VALID BUSES ----------------
@@ -49,7 +49,7 @@ if not valid_buses:
     print("❌ No buses found")
     exit()
 
-# ---------------- BEST BUS ----------------
+# ---------------- FIND BEST BUS ----------------
 
 best_bus = None
 best_time = float("inf")
@@ -65,7 +65,7 @@ for bus in valid_buses:
         best_time = total_time
         best_bus = bus
 
-# ---------------- BUS CURRENT LOCATION ----------------
+# ---------------- LIVE LOCATION SIMULATION ----------------
 
 current_location = best_bus["route"][0]
 
@@ -73,37 +73,19 @@ current_location = best_bus["route"][0]
 
 print("\n============================")
 print("HELPLINE RESPONSE")
-print("============================")
+print("============================\n")
 
-print("\n🇬🇧 English")
-print(
-    f"Bus {best_bus['bus_no']} is currently at "
-    f"{current_location}."
-)
-print(
-    f"It will reach {source} in "
-    f"{best_bus['eta_to_source']} minutes."
-)
+print("🇬🇧 English")
+print(f"Bus {best_bus['bus_no']} is currently at {current_location}.")
+print(f"It will reach {destination} in {best_time} minutes.")
 print("This is the best bus for your journey.")
 
 print("\n🇮🇳 தமிழ்")
-print(
-    f"{best_bus['bus_no']} பேருந்து தற்போது "
-    f"{current_location} இல் உள்ளது."
-)
-print(
-    f"இது {source} ஐ "
-    f"{best_bus['eta_to_source']} நிமிடங்களில் அடையும்."
-)
+print(f"{best_bus['bus_no']} பேருந்து தற்போது {current_location} இல் உள்ளது.")
+print(f"இது {destination} ஐ {best_time} நிமிடங்களில் அடையும்.")
 print("இது உங்களுக்கான சிறந்த பேருந்து.")
 
 print("\n🇮🇳 Hindi")
-print(
-    f"{best_bus['bus_no']} बस अभी "
-    f"{current_location} में है।"
-)
-print(
-    f"यह {source} तक "
-    f"{best_bus['eta_to_source']} मिनट में पहुंचेगी।"
-)
+print(f"{best_bus['bus_no']} बस अभी {current_location} में है।")
+print(f"यह {destination} तक {best_time} मिनट में पहुंचेगी।")
 print("यह आपके लिए सबसे अच्छा विकल्प है।")
