@@ -1,35 +1,54 @@
 [
     {
         "bus_no": "111",
-        "route": [
-            "Gandhipuram",
-            "Ganapathy",
-            "Prozone Mall",
-            "Saravanampatti",
-            "KGISL",
-            "KCT",
-            "Sankara College",
-            "SNS College",
-            "Vellakinar",
-            "Thudiyalur"
+
+        "stops": [
+            {
+                "name": "Gandhipuram",
+                "next_stop_time": 6
+            },
+            {
+                "name": "Ganapathy",
+                "next_stop_time": 4
+            },
+            {
+                "name": "Prozone Mall",
+                "next_stop_time": 5
+            },
+            {
+                "name": "Saravanampatti",
+                "next_stop_time": 3
+            },
+            {
+                "name": "KGISL",
+                "next_stop_time": 2
+            },
+            {
+                "name": "KCT",
+                "next_stop_time": 3
+            },
+            {
+                "name": "Sankara College",
+                "next_stop_time": 2
+            },
+            {
+                "name": "SNS College",
+                "next_stop_time": 4
+            },
+            {
+                "name": "Vellakinar",
+                "next_stop_time": 6
+            },
+            {
+                "name": "Thudiyalur",
+                "next_stop_time": 0
+            }
         ],
-
-        "travel_time": {
-            "Gandhipuram-Ganapathy": 6,
-            "Ganapathy-Prozone Mall": 4,
-            "Prozone Mall-Saravanampatti": 5,
-            "Saravanampatti-KGISL": 3,
-            "KGISL-KCT": 2,
-            "KCT-Sankara College": 3,
-            "Sankara College-SNS College": 2,
-            "SNS College-Vellakinar": 4,
-            "Vellakinar-Thudiyalur": 6
-        },
-
-        "wait_time": 5,
 
         "current_stop": "SNS College",
 
-        "direction": "UP"
+        "direction": "UP",
+
+        "wait_time": 5
     }
 ]
