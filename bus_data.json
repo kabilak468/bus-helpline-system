@@ -1,20 +1,35 @@
 [
     {
         "bus_no": "111",
-        "route": ["Gandhipuram", "Lakshmi Mills", "Peelamedu", "Saravanampatti"],
-        "eta_to_source": 7,
-        "travel_time_to_destination": 18
-    },
-    {
-        "bus_no": "102",
-        "route": ["Gandhipuram", "Hope College", "Saravanampatti"],
-        "eta_to_source": 12,
-        "travel_time_to_destination": 14
-    },
-    {
-        "bus_no": "118",
-        "route": ["Gandhipuram", "Airport", "Saravanampatti"],
-        "eta_to_source": 10,
-        "travel_time_to_destination": 16
+        "route": [
+            "Gandhipuram",
+            "Ganapathy",
+            "Prozone Mall",
+            "Saravanampatti",
+            "KGISL",
+            "KCT",
+            "Sankara College",
+            "SNS College",
+            "Vellakinar",
+            "Thudiyalur"
+        ],
+
+        "travel_time": {
+            "Gandhipuram-Ganapathy": 6,
+            "Ganapathy-Prozone Mall": 4,
+            "Prozone Mall-Saravanampatti": 5,
+            "Saravanampatti-KGISL": 3,
+            "KGISL-KCT": 2,
+            "KCT-Sankara College": 3,
+            "Sankara College-SNS College": 2,
+            "SNS College-Vellakinar": 4,
+            "Vellakinar-Thudiyalur": 6
+        },
+
+        "wait_time": 5,
+
+        "current_stop": "SNS College",
+
+        "direction": "UP"
     }
 ]
