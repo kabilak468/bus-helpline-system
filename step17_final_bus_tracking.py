@@ -81,28 +81,50 @@ print("\nHeard:", text)
 text = text.lower()
 stops_lower = [s.lower() for s in stops]
 
+source = None
+destination = None
+
 words = text.split()
-found = []
 
-skip_words = ["to", "from", "go", "bus", "need", "i", "want", "at"]
+for i, word in enumerate(words):
 
-for word in words:
+    match = get_close_matches(word, stops_lower, n=1, cutoff=0.4)
 
-    match = get_close_matches(word, stops_lower, n=1, cutoff=0.3)
+    if not match:
+        continue
 
-    if match:
+    stop = stops[stops_lower.index(match[0])]
 
-        original = stops[stops_lower.index(match[0])]
+    # ---------------- INTENT LOGIC ----------------
 
-        if original not in found:
-            found.append(original)
+    if "iruken" in text or "from" in text:
+        if source is None:
+            source = stop
 
-if len(found) < 2:
-    print("Could not identify both stops.")
+    if "poganum" in text or "to" in text or "go" in text:
+        destination = stop
+
+# ---------------- FALLBACK (if AI words not detected) ----------------
+
+if source is None or destination is None:
+
+    found = []
+    for word in words:
+        match = get_close_matches(word, stops_lower, n=1, cutoff=0.4)
+        if match:
+            original = stops[stops_lower.index(match[0])]
+            if original not in found:
+                found.append(original)
+
+    if len(found) >= 2:
+        source = found[0]
+        destination = found[1]
+
+# ---------------- FINAL CHECK ----------------
+
+if source is None or destination is None:
+    print("Could not identify proper route.")
     exit()
-
-source = found[0]
-destination = found[1]
 
 print("\nDetected Route")
 print(source, "->", destination)
