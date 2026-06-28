@@ -1,14 +1,13 @@
 import json
 import speech_recognition as sr
 from difflib import get_close_matches
-import pyttsx3
 
 # ---------------- LOAD DATABASE ----------------
 
 with open("bus_data.json", "r") as file:
     buses = json.load(file)
 
-# ---------------- STOPS ----------------
+# ---------------- BUILD STOP LIST ----------------
 
 stops = []
 
@@ -17,7 +16,7 @@ for bus in buses:
         if stop not in stops:
             stops.append(stop)
 
-# ---------------- SPEECH INPUT ----------------
+# ---------------- VOICE INPUT ----------------
 
 r = sr.Recognizer()
 
@@ -30,123 +29,179 @@ with sr.Microphone() as source:
     audio = r.listen(source)
 
 try:
-
     text = r.recognize_google(audio, language="en-IN")
-
-    print("\n📝 Google Heard:")
-    print(text)
-
-except Exception as e:
-
-    print("❌ Speech Error:", e)
+except:
+    print("Speech not recognized.")
     exit()
 
-# ---------------- FUZZY MATCHING ----------------
+print("\nGoogle Heard:")
+print(text)
+
+# ---------------- STOP DETECTION ----------------
+
+text = text.lower()
+stops_lower = [s.lower() for s in stops]
 
 words = text.split()
+found = []
 
-found_stops = []
+skip_words = ["to", "from", "go", "bus", "need", "i", "want"]
 
 for word in words:
 
-    match = get_close_matches(
-        word,
-        stops,
-        n=1,
-        cutoff=0.4
-    )
+    if word in skip_words:
+        continue
 
-    if match and match[0] not in found_stops:
-        found_stops.append(match[0])
+    match = get_close_matches(word, stops_lower, n=1, cutoff=0.3)
 
-print("\n📍 Detected Stops:")
-print(found_stops)
+    if match:
 
-if len(found_stops) < 2:
-    print("❌ Could not identify source and destination")
+        original = stops[stops_lower.index(match[0])]
+
+        if original not in found:
+            found.append(original)
+
+if len(found) < 2:
+    print("Could not identify both stops.")
     exit()
 
-source = found_stops[0]
-destination = found_stops[1]
+source = found[0]
+destination = found[1]
 
-# ---------------- CONFIRMATION ----------------
+print("\nDetected Route")
+print(source, "->", destination)
 
-print("\n========================")
-print("CONFIRM ROUTE")
-print("========================")
+print("\nConfirm Route")
+print(source, "->", destination)
 
-print(f"\nDid you mean:")
-print(f"{source} ➜ {destination}")
-
-print("\nPress 1 to Confirm")
-print("Press 2 to Speak Again")
-
-choice = input("\nEnter Choice: ")
+choice = input("\nPress 1 to Confirm\nPress 2 to Exit\nEnter Choice: ")
 
 if choice != "1":
-    print("Please run again and speak.")
     exit()
 
-# ---------------- FIND VALID BUSES ----------------
+# ---------------- FIND BEST BUS ----------------
 
-valid_buses = []
+best_bus = None
 
 for bus in buses:
 
-    if (
-        source in bus["route"]
-        and destination in bus["route"]
-    ):
-        valid_buses.append(bus)
+    if source in bus["route"] and destination in bus["route"]:
 
-if len(valid_buses) == 0:
+        s = bus["route"].index(source)
+        d = bus["route"].index(destination)
 
-    print("❌ No buses found")
+        if s < d:
+            best_bus = bus
+            break
+
+if best_bus is None:
+    print("No bus available.")
     exit()
 
-# ---------------- BEST BUS ----------------
+print("\nSelected Bus:", best_bus["bus_no"])
 
-best_bus = None
-best_time = float("inf")
+# ---------------- ETA CALCULATION ----------------
 
-for bus in valid_buses:
+def calculate_eta(bus, source, destination):
 
-    total_time = (
-        bus["eta_to_source"]
-        + bus["travel_time_to_destination"]
-    )
+    route = bus["route"]
 
-    if total_time < best_time:
+    current_index = route.index(bus["current_stop"])
+    user_index = route.index(source)
+    destination_index = route.index(destination)
 
-        best_time = total_time
-        best_bus = bus
+    minutes_per_stop = bus.get("minutes_per_stop", 3)
+    wait_time = bus.get("wait_time", 5)
 
-# ---------------- LIVE LOCATION ----------------
+    # ARRIVED
+    if current_index == user_index:
+        return 0, "arrived"
 
-current_location = best_bus["route"][0]
+    # Passenger direction
+    if user_index < destination_index:
+        passenger_direction = "UP"
+    else:
+        passenger_direction = "DOWN"
 
-# ---------------- RESULT ----------------
+    # UP + UP
+    if passenger_direction == "UP" and bus["direction"] == "UP":
 
-print("\n🚍 BEST BUS FOUND")
+        if current_index < user_index:
+            eta = (user_index - current_index) * minutes_per_stop
+            return eta, "coming"
 
-print("Bus No:", best_bus["bus_no"])
-print("Current Location:", current_location)
-print("Destination:", destination)
-print("Arrival Time:", best_time, "minutes")
+        else:
+            eta = (
+                (len(route) - current_index - 1) * minutes_per_stop +
+                wait_time +
+                len(route) * minutes_per_stop +
+                wait_time +
+                user_index * minutes_per_stop
+            )
+            return eta, "passed"
 
-# ---------------- VOICE OUTPUT ----------------
+    # DOWN + DOWN
+    if passenger_direction == "DOWN" and bus["direction"] == "DOWN":
 
-engine = pyttsx3.init()
+        if current_index > user_index:
+            eta = (current_index - user_index) * minutes_per_stop
+            return eta, "coming"
 
-message = (
-    f"Bus {best_bus['bus_no']} "
-    f"is currently at {current_location}. "
-    f"It will reach {destination} "
-    f"in {best_time} minutes. "
-    f"This is the best bus for your journey."
-)
+        else:
+            eta = (
+                current_index * minutes_per_stop +
+                wait_time +
+                len(route) * minutes_per_stop +
+                wait_time +
+                (len(route) - user_index - 1) * minutes_per_stop
+            )
+            return eta, "passed"
 
-print("\n🔊 Speaking...")
+    # OPPOSITE CASES
+    if passenger_direction == "UP" and bus["direction"] == "DOWN":
 
-engine.say(message)
-engine.runAndWait()
+        eta = (
+            current_index * minutes_per_stop +
+            wait_time +
+            user_index * minutes_per_stop
+        )
+        return eta, "opposite"
+
+    if passenger_direction == "DOWN" and bus["direction"] == "UP":
+
+        eta = (
+            (len(route) - current_index - 1) * minutes_per_stop +
+            wait_time +
+            (len(route) - user_index - 1) * minutes_per_stop
+        )
+        return eta, "opposite"
+
+    return 0, "unknown"
+
+# ---------------- RUN ETA ----------------
+
+eta, status = calculate_eta(best_bus, source, destination)
+
+# ---------------- OUTPUT ----------------
+
+print("\n========================")
+print("SMART HELPLINE RESPONSE")
+print("========================")
+
+if status == "arrived":
+
+    print(f"Bus {best_bus['bus_no']} is already at your stop {source}.")
+
+elif status == "coming":
+
+    print(f"Bus {best_bus['bus_no']} will reach {source} in {eta} minutes.")
+
+elif status == "passed":
+
+    print(f"Bus {best_bus['bus_no']} has already crossed your stop. Wait {eta} minutes.")
+
+else:
+
+    print(f"Bus {best_bus['bus_no']} is in opposite direction. ETA {eta} minutes.")
+
+print("\n✅ Done")
