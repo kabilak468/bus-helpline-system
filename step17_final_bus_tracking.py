@@ -75,6 +75,7 @@ except:
 print("\nHeard:", text)
 
 
+
 # ---------------- STOP DETECTION (FIXED) ----------------
 
 text = text.lower()
@@ -83,12 +84,9 @@ stops_lower = [s.lower() for s in stops]
 words = text.split()
 found = []
 
-skip_words = ["to", "from", "go", "bus", "need", "i", "want"]
+skip_words = ["to", "from", "go", "bus", "need", "i", "want", "at"]
 
 for word in words:
-
-    if word in skip_words:
-        continue
 
     match = get_close_matches(word, stops_lower, n=1, cutoff=0.3)
 
@@ -109,9 +107,18 @@ destination = found[1]
 print("\nDetected Route")
 print(source, "->", destination)
 
+# ---------------- CONFIRMATION PROMPT ----------------
+
+speak(f"நீங்கள் {source} முதல் {destination} வரை சொன்னீர்கள். உறுதிப்படுத்த 1 அழுத்தவும் அல்லது நிறுத்த 2 அழுத்தவும்.", "ta")
+
+speak(f"You said {source} to {destination}. Press 1 to confirm or 2 to exit.", "en")
+
+speak(f"आपने {source} से {destination} बताया है। पुष्टि करने के लिए 1 दबाएँ या बाहर निकलने के लिए 2 दबाएँ।", "hi")
+
 choice = input("\nPress 1 to Confirm\nPress 2 to Exit\nChoice: ")
 
 if choice != "1":
+    print("Exited by user.")
     exit()
 
 # ---------------- FIND BEST BUS ----------------
