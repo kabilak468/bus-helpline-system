@@ -92,14 +92,12 @@ for bus in buses:
 
     if source in bus["route"] and destination in bus["route"]:
 
-        s = bus["route"].index(source)
-        d = bus["route"].index(destination)
-
-        if s < d:
-            best_bus = bus
-            break
+        # accept ANY valid bus containing both stops
+        best_bus = bus
+        break
 
 if best_bus is None:
+
     print("No bus available.")
     exit()
 
@@ -180,36 +178,83 @@ def calculate_eta():
 
 eta, status = calculate_eta()
 
+
 # ---------------- OUTPUT ----------------
 
 print("\n========================")
 print("SMART HELPLINE RESPONSE")
 print("========================")
 
+current_loc = best_bus["current_stop"]
+
+# ---------------- ENGLISH ----------------
+
 if status == "arrived":
 
-    english = f"Bus {best_bus['bus_no']} is already at your stop {source}."
+    english = f"Bus {best_bus['bus_no']} is already at your stop {source}. Please board the bus."
 
 elif status == "coming":
 
-    english = f"Bus {best_bus['bus_no']} will reach {source} in {eta} minutes."
+    english = f"Bus {best_bus['bus_no']} is currently at {current_loc}. Please wait {eta} minutes."
 
 elif status == "passed":
 
-    english = f"Bus {best_bus['bus_no']} has already crossed your stop. Wait {eta} minutes."
+    english = f"Bus {best_bus['bus_no']} has already crossed your stop and is at {current_loc}. Please wait {eta} minutes."
 
 else:
 
-    english = f"Bus {best_bus['bus_no']} is in opposite direction. It will reach in {eta} minutes."
+    english = f"Bus {best_bus['bus_no']} is in opposite direction. Please wait {eta} minutes."
 
-print("\n🇬🇧", english)
+print("\n🇬🇧 ENGLISH:\n", english)
+
+# ---------------- TAMIL ----------------
+
+if status == "arrived":
+
+    tamil = f"{best_bus['bus_no']} பேருந்து தற்போது உங்கள் நிறுத்தமான {source} இல் உள்ளது. தயவுசெய்து ஏறவும்."
+
+elif status == "coming":
+
+    tamil = f"{best_bus['bus_no']} பேருந்து தற்போது {current_loc} இல் உள்ளது. {eta} நிமிடங்கள் காத்திருக்கவும்."
+
+elif status == "passed":
+
+    tamil = f"{best_bus['bus_no']} பேருந்து உங்கள் நிறுத்தத்தை கடந்துவிட்டது. அது தற்போது {current_loc} இல் உள்ளது. {eta} நிமிடங்கள் காத்திருக்கவும்."
+
+else:
+
+    tamil = f"{best_bus['bus_no']} பேருந்து எதிர்திசையில் உள்ளது. {eta} நிமிடங்கள் காத்திருக்கவும்."
+
+print("\n🇮🇳 TAMIL:\n", tamil)
+
+# ---------------- HINDI ----------------
+
+if status == "arrived":
+
+    hindi = f"बस नंबर {best_bus['bus_no']} अभी आपके स्टॉप {source} पर है। कृपया चढ़ें।"
+
+elif status == "coming":
+
+    hindi = f"बस नंबर {best_bus['bus_no']} अभी {current_loc} में है। कृपया {eta} मिनट प्रतीक्षा करें।"
+
+elif status == "passed":
+
+    hindi = f"बस आपके स्टॉप को पार कर चुकी है और अभी {current_loc} में है। कृपया {eta} मिनट प्रतीक्षा करें।"
+
+else:
+
+    hindi = f"बस विपरीत दिशा में है। कृपया प्रतीक्षा करें।"
+
+print("\n🇮🇳 HINDI:\n", hindi)
 
 # ---------------- SPEECH ----------------
 
 pygame.mixer.init()
 
 def speak(text, lang):
+
     filename = "voice.mp3"
+
     gTTS(text=text, lang=lang).save(filename)
 
     pygame.mixer.music.load(filename)
@@ -221,7 +266,15 @@ def speak(text, lang):
     pygame.mixer.music.unload()
     os.remove(filename)
 
-print("\n🔊 Speaking...")
+# ---------------- VOICE OUTPUT ----------------
+
+print("\n🔊 Speaking English...")
 speak(english, "en")
+
+print("🔊 Speaking Tamil...")
+speak(tamil, "ta")
+
+print("🔊 Speaking Hindi...")
+speak(hindi, "hi")
 
 print("\n✅ DONE")
