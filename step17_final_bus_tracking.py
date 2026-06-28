@@ -11,11 +11,6 @@ import time
 with open("bus_data.json", "r") as file:
     buses = json.load(file)
 
-# ---------------- SETTINGS ----------------
-
-WAIT_TIME = 5
-minutes_per_stop = 3
-
 # ---------------- BUILD STOP LIST ----------------
 
 stops = []
@@ -24,6 +19,11 @@ for bus in buses:
     for stop in bus["route"]:
         if stop not in stops:
             stops.append(stop)
+
+# ---------------- SETTINGS ----------------
+
+WAIT_TIME = 5
+minutes_per_stop = 3
 
 # ---------------- VOICE INPUT ----------------
 
@@ -45,16 +45,29 @@ except:
 print("\nGoogle Heard:")
 print(text)
 
-# ---------------- FIND STOPS ----------------
+# ---------------- STOP DETECTION (FIXED) ----------------
+
+text = text.lower()
+stops_lower = [s.lower() for s in stops]
 
 words = text.split()
 found = []
 
+skip_words = ["to", "from", "go", "bus", "need", "i", "want"]
+
 for word in words:
-    match = get_close_matches(word, stops, n=1, cutoff=0.4)
+
+    if word in skip_words:
+        continue
+
+    match = get_close_matches(word, stops_lower, n=1, cutoff=0.3)
+
     if match:
-        if match[0] not in found:
-            found.append(match[0])
+
+        original = stops[stops_lower.index(match[0])]
+
+        if original not in found:
+            found.append(original)
 
 if len(found) < 2:
     print("Could not identify both stops.")
@@ -92,7 +105,7 @@ if best_bus is None:
 
 print("\nSelected Bus:", best_bus["bus_no"])
 
-# ---------------- ETA ENGINE (STEP 18 LOGIC) ----------------
+# ---------------- ETA ENGINE ----------------
 
 def calculate_eta():
 
@@ -111,7 +124,7 @@ def calculate_eta():
     if current_index == user_index:
         return 0, "arrived"
 
-    # ---------------- UP + UP ----------------
+    # UP + UP
     if passenger_direction == "UP" and best_bus["direction"] == "UP":
 
         if current_index < user_index:
@@ -128,7 +141,7 @@ def calculate_eta():
             )
             return eta, "passed"
 
-    # ---------------- DOWN + DOWN ----------------
+    # DOWN + DOWN
     if passenger_direction == "DOWN" and best_bus["direction"] == "DOWN":
 
         if current_index > user_index:
@@ -145,7 +158,7 @@ def calculate_eta():
             )
             return eta, "passed"
 
-    # ---------------- OPPOSITE ----------------
+    # OPPOSITE CASES
     if passenger_direction == "UP" and best_bus["direction"] == "DOWN":
 
         eta = (
@@ -167,7 +180,7 @@ def calculate_eta():
 
 eta, status = calculate_eta()
 
-# ---------------- RESULT ----------------
+# ---------------- OUTPUT ----------------
 
 print("\n========================")
 print("SMART HELPLINE RESPONSE")
@@ -179,24 +192,15 @@ if status == "arrived":
 
 elif status == "coming":
 
-    english = (
-        f"Bus {best_bus['bus_no']} is coming from {best_bus['current_stop']}. "
-        f"It will reach {source} in {eta} minutes."
-    )
+    english = f"Bus {best_bus['bus_no']} will reach {source} in {eta} minutes."
 
 elif status == "passed":
 
-    english = (
-        f"Bus {best_bus['bus_no']} has already crossed your stop. "
-        f"Please wait {eta} minutes."
-    )
+    english = f"Bus {best_bus['bus_no']} has already crossed your stop. Wait {eta} minutes."
 
 else:
 
-    english = (
-        f"Bus {best_bus['bus_no']} is moving in opposite direction. "
-        f"It will reach your stop in {eta} minutes."
-    )
+    english = f"Bus {best_bus['bus_no']} is in opposite direction. It will reach in {eta} minutes."
 
 print("\n🇬🇧", english)
 
