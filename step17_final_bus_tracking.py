@@ -5,63 +5,49 @@ from gtts import gTTS
 import pygame
 import os
 import time
-# ---------------- SPEECH ----------------
+
+# ================= LOAD DATA =================
+
+with open("bus_data.json", "r", encoding="utf-8") as file:
+    buses = json.load(file)
+
+bus = buses[0]
+
+route = bus["route"]
+stops = route
+stops_lower = [s.lower() for s in stops]
+
+WAIT_TIME = bus.get("wait_time", 5)
+minutes_per_stop = bus.get("minutes_per_stop", 3)
+
+# ================= SPEECH ENGINE =================
 
 pygame.mixer.init()
 
 def speak(text, lang):
-
     filename = "voice.mp3"
-
     gTTS(text=text, lang=lang).save(filename)
-
     pygame.mixer.music.load(filename)
     pygame.mixer.music.play()
-
     while pygame.mixer.music.get_busy():
         time.sleep(0.2)
-
     pygame.mixer.music.unload()
     os.remove(filename)
 
-# ---------------- LOAD DATABASE ----------------
-
-with open("bus_data.json", "r") as file:
-    buses = json.load(file)
-
-# ---------------- BUILD STOP LIST ----------------
-
-stops = []
-
-for bus in buses:
-    for stop in bus["route"]:
-        if stop not in stops:
-            stops.append(stop)
-
-# ---------------- SETTINGS ----------------
-
-WAIT_TIME = 5
-minutes_per_stop = 3
-
-# ---------------- VOICE INPUT (UPDATED FLOW) ----------------
-
-import speech_recognition as sr
-import time
+# ================= VOICE INPUT (GUIDED) =================
 
 r = sr.Recognizer()
 
 with sr.Microphone() as source:
 
-    # ---------------- GREETING ----------------
     speak("Vanakkam", "ta")
     time.sleep(0.5)
 
-    # ---------------- SINGLE COMBINED PROMPT ----------------
-    speak("நீங்கள் இப்போது எங்கு இருக்கிறீர்கள்? மற்றும் எங்கு செல்ல விரும்புகிறீர்கள்?", "ta")
     speak("Where are you now? And where do you want to go?", "en")
-    speak("आप अभी कहाँ हैं? और कहाँ जाना चाहते हैं?", "hi")
+    speak("நீங்கள் இப்போது எங்கு இருக்கிறீர்கள் மற்றும் எங்கு செல்ல விரும்புகிறீர்கள்?", "ta")
+    speak("आप अभी कहाँ हैं और कहाँ जाना चाहते हैं?", "hi")
 
-    print("\n🎤 Speak both places...")
+    print("\n🎤 Listening...")
 
     r.adjust_for_ambient_noise(source, duration=2)
     audio = r.listen(source)
@@ -69,253 +55,165 @@ with sr.Microphone() as source:
 try:
     text = r.recognize_google(audio, language="en-IN")
 except:
-    print("Could not understand speech.")
+    print("Speech not recognized.")
     exit()
 
 print("\nHeard:", text)
 
-
-
-# ---------------- STOP DETECTION (FIXED) ----------------
+# ================= STOP DETECTION =================
 
 text = text.lower()
-stops_lower = [s.lower() for s in stops]
+found = []
 
-source = None
-destination = None
+for word in text.split():
 
-words = text.split()
+    match = get_close_matches(word, stops_lower, n=1, cutoff=0.5)
 
-for i, word in enumerate(words):
+    if match:
+        original = stops[stops_lower.index(match[0])]
+        if original not in found:
+            found.append(original)
 
-    match = get_close_matches(word, stops_lower, n=1, cutoff=0.4)
-
-    if not match:
-        continue
-
-    stop = stops[stops_lower.index(match[0])]
-
-    # ---------------- INTENT LOGIC ----------------
-
-    if "iruken" in text or "from" in text:
-        if source is None:
-            source = stop
-
-    if "poganum" in text or "to" in text or "go" in text:
-        destination = stop
-
-# ---------------- FALLBACK (if AI words not detected) ----------------
-
-if source is None or destination is None:
-
-    found = []
-    for word in words:
-        match = get_close_matches(word, stops_lower, n=1, cutoff=0.4)
-        if match:
-            original = stops[stops_lower.index(match[0])]
-            if original not in found:
-                found.append(original)
-
-    if len(found) >= 2:
-        source = found[0]
-        destination = found[1]
-
-# ---------------- FINAL CHECK ----------------
-
-if source is None or destination is None:
-    print("Could not identify proper route.")
+if len(found) < 2:
+    print("Could not identify both stops.")
     exit()
 
-print("\nDetected Route")
-print(source, "->", destination)
+source = found[0]
+destination = found[1]
 
-# ---------------- CONFIRMATION PROMPT ----------------
+print("\nDetected Route:", source, "->", destination)
 
-speak(f"நீங்கள் {source} முதல் {destination} வரை சொன்னீர்கள். உறுதிப்படுத்த 1 அழுத்தவும் அல்லது நிறுத்த 2 அழுத்தவும்.", "ta")
+# ================= CONFIRMATION =================
 
-speak(f"You said {source} to {destination}. Press 1 to confirm or 2 to exit.", "en")
+speak(f"You said {source} to {destination}. Press 1 to confirm.", "en")
+speak(f"நீங்கள் {source} முதல் {destination} வரை சொன்னீர்கள். உறுதிப்படுத்த 1 அழுத்தவும்.", "ta")
+speak(f"आपने {source} से {destination} बताया है। पुष्टि करने के लिए 1 दबाएँ।", "hi")
 
-speak(f"आपने {source} से {destination} बताया है। पुष्टि करने के लिए 1 दबाएँ या बाहर निकलने के लिए 2 दबाएँ।", "hi")
-
-choice = input("\nPress 1 to Confirm\nPress 2 to Exit\nChoice: ")
+choice = input("\nPress 1 to Confirm: ")
 
 if choice != "1":
-    print("Exited by user.")
+    print("User exited")
     exit()
 
-# ---------------- FIND BEST BUS ----------------
+# ================= CORE DATA =================
 
-best_bus = None
+current_stop = bus["current_stop"]
+direction = bus["direction"]
 
-for bus in buses:
+current_index = route.index(current_stop)
+user_index = route.index(source)
+destination_index = route.index(destination)
 
-    if source in bus["route"] and destination in bus["route"]:
-
-        # accept ANY valid bus containing both stops
-        best_bus = bus
-        break
-
-if best_bus is None:
-
-    print("No bus available.")
-    exit()
-
-print("\nSelected Bus:", best_bus["bus_no"])
-
-# ---------------- ETA ENGINE ----------------
+# ================= ETA ENGINE (FINAL LOGIC) =================
 
 def calculate_eta():
 
-    route = best_bus["route"]
-    current_index = route.index(best_bus["current_stop"])
-    user_index = route.index(source)
-    destination_index = route.index(destination)
+    route_len = len(route)
+    last_index = route_len - 1
 
-    # Passenger direction
-    if user_index < destination_index:
-        passenger_direction = "UP"
-    else:
-        passenger_direction = "DOWN"
+    passenger_direction = "UP" if user_index < destination_index else "DOWN"
+    bus_direction = direction
 
-    # ARRIVED
+    # ---------------- ARRIVED ----------------
     if current_index == user_index:
         return 0, "arrived"
 
-    # UP + UP
-    if passenger_direction == "UP" and best_bus["direction"] == "UP":
+    # ---------------- SAME DIRECTION ----------------
+    if passenger_direction == bus_direction:
 
-        if current_index < user_index:
-            eta = (user_index - current_index) * minutes_per_stop
+        # BUS BEFORE PASSENGER
+        if (bus_direction == "UP" and current_index < user_index) or \
+           (bus_direction == "DOWN" and current_index > user_index):
+
+            eta = abs(user_index - current_index) * minutes_per_stop
             return eta, "coming"
 
+        # BUS AFTER PASSENGER (CROSSED)
         else:
+
             eta = (
-                (len(route) - current_index - 1) * minutes_per_stop +
+                abs(last_index - current_index) * minutes_per_stop +
                 WAIT_TIME +
-                len(route) * minutes_per_stop +
+                route_len * minutes_per_stop +
                 WAIT_TIME +
-                user_index * minutes_per_stop
+                abs(user_index) * minutes_per_stop
             )
+
             return eta, "passed"
 
-    # DOWN + DOWN
-    if passenger_direction == "DOWN" and best_bus["direction"] == "DOWN":
-
-        if current_index > user_index:
-            eta = (current_index - user_index) * minutes_per_stop
-            return eta, "coming"
-
-        else:
-            eta = (
-                current_index * minutes_per_stop +
-                WAIT_TIME +
-                len(route) * minutes_per_stop +
-                WAIT_TIME +
-                (len(route) - user_index - 1) * minutes_per_stop
-            )
-            return eta, "passed"
-
-    # OPPOSITE CASES
-    if passenger_direction == "UP" and best_bus["direction"] == "DOWN":
+    # ---------------- OPPOSITE DIRECTION ----------------
+    else:
 
         eta = (
-            current_index * minutes_per_stop +
+            abs(last_index - current_index) * minutes_per_stop +
             WAIT_TIME +
-            user_index * minutes_per_stop
+            abs(user_index) * minutes_per_stop
         )
+
         return eta, "opposite"
-
-    if passenger_direction == "DOWN" and best_bus["direction"] == "UP":
-
-        eta = (
-            (len(route) - current_index - 1) * minutes_per_stop +
-            WAIT_TIME +
-            (len(route) - user_index - 1) * minutes_per_stop
-        )
-        return eta, "opposite"
-
 
 eta, status = calculate_eta()
 
+# ================= OUTPUT =================
 
-# ---------------- OUTPUT ----------------
+current_loc = current_stop
 
 print("\n========================")
 print("SMART HELPLINE RESPONSE")
 print("========================")
 
-current_loc = best_bus["current_stop"]
-
 # ---------------- ENGLISH ----------------
 
 if status == "arrived":
-
-    english = f"Bus {best_bus['bus_no']} is already at your stop {source}. Please board the bus."
+    english = f"Bus {bus['bus_no']} is already at your stop {source}. Please board."
 
 elif status == "coming":
-
-    english = f"Bus {best_bus['bus_no']} is currently at {current_loc}. Please wait {eta} minutes."
+    english = f"Bus {bus['bus_no']} is at {current_loc}. Please wait {eta} minutes."
 
 elif status == "passed":
-
-    english = f"Bus {best_bus['bus_no']} has already crossed your stop and is at {current_loc}. Please wait {eta} minutes."
+    english = f"Bus {bus['bus_no']} has crossed your stop and is at {current_loc}. Please wait {eta} minutes."
 
 else:
-
-    english = f"Bus {best_bus['bus_no']} is in opposite direction. Please wait {eta} minutes."
-
-print("\n🇬🇧 ENGLISH:\n", english)
+    english = f"Bus {bus['bus_no']} is in opposite direction. Please wait {eta} minutes."
 
 # ---------------- TAMIL ----------------
 
 if status == "arrived":
-
-    tamil = f"{best_bus['bus_no']} பேருந்து தற்போது உங்கள் நிறுத்தமான {source} இல் உள்ளது. தயவுசெய்து ஏறவும்."
+    tamil = f"பேருந்து {bus['bus_no']} உங்கள் நிறுத்தமான {source} இல் உள்ளது. ஏறவும்."
 
 elif status == "coming":
-
-    tamil = f"{best_bus['bus_no']} பேருந்து தற்போது {current_loc} இல் உள்ளது. {eta} நிமிடங்கள் காத்திருக்கவும்."
+    tamil = f"பேருந்து {bus['bus_no']} தற்போது {current_loc} இல் உள்ளது. {eta} நிமிடங்கள் காத்திருக்கவும்."
 
 elif status == "passed":
-
-    tamil = f"{best_bus['bus_no']} பேருந்து உங்கள் நிறுத்தத்தை கடந்துவிட்டது. அது தற்போது {current_loc} இல் உள்ளது. {eta} நிமிடங்கள் காத்திருக்கவும்."
+    tamil = f"பேருந்து உங்கள் நிறுத்தத்தை கடந்துவிட்டது. அது தற்போது {current_loc} இல் உள்ளது. {eta} நிமிடங்கள் காத்திருக்கவும்."
 
 else:
-
-    tamil = f"{best_bus['bus_no']} பேருந்து எதிர்திசையில் உள்ளது. {eta} நிமிடங்கள் காத்திருக்கவும்."
-
-print("\n🇮🇳 TAMIL:\n", tamil)
+    tamil = f"பேருந்து எதிர்திசையில் உள்ளது. {eta} நிமிடங்கள் காத்திருக்கவும்."
 
 # ---------------- HINDI ----------------
 
 if status == "arrived":
-
-    hindi = f"बस नंबर {best_bus['bus_no']} अभी आपके स्टॉप {source} पर है। कृपया चढ़ें।"
+    hindi = f"बस {bus['bus_no']} अभी आपके स्टॉप {source} पर है। चढ़ें।"
 
 elif status == "coming":
-
-    hindi = f"बस नंबर {best_bus['bus_no']} अभी {current_loc} में है। कृपया {eta} मिनट प्रतीक्षा करें।"
+    hindi = f"बस {bus['bus_no']} अभी {current_loc} में है। {eta} मिनट प्रतीक्षा करें।"
 
 elif status == "passed":
-
-    hindi = f"बस आपके स्टॉप को पार कर चुकी है और अभी {current_loc} में है। कृपया {eta} मिनट प्रतीक्षा करें।"
+    hindi = f"बस आपके स्टॉप को पार कर चुकी है और अभी {current_loc} में है। {eta} मिनट प्रतीक्षा करें।"
 
 else:
-
     hindi = f"बस विपरीत दिशा में है। कृपया प्रतीक्षा करें।"
 
-print("\n🇮🇳 HINDI:\n", hindi)
+# ================= PRINT =================
 
+print("\nENGLISH:\n", english)
+print("\nTAMIL:\n", tamil)
+print("\nHINDI:\n", hindi)
 
-# ---------------- VOICE OUTPUT ----------------
+# ================= SPEECH OUTPUT =================
 
-print("\n🔊 Speaking English...")
 speak(english, "en")
-
-print("🔊 Speaking Tamil...")
 speak(tamil, "ta")
-
-print("🔊 Speaking Hindi...")
 speak(hindi, "hi")
 
-print("\n✅ DONE")
+print("\n✅ STEP 17 v3.1 COMPLETE - STABLE SYSTEM")
