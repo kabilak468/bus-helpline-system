@@ -5,6 +5,24 @@ from gtts import gTTS
 import pygame
 import os
 import time
+# ---------------- SPEECH ----------------
+
+pygame.mixer.init()
+
+def speak(text, lang):
+
+    filename = "voice.mp3"
+
+    gTTS(text=text, lang=lang).save(filename)
+
+    pygame.mixer.music.load(filename)
+    pygame.mixer.music.play()
+
+    while pygame.mixer.music.get_busy():
+        time.sleep(0.2)
+
+    pygame.mixer.music.unload()
+    os.remove(filename)
 
 # ---------------- LOAD DATABASE ----------------
 
@@ -25,57 +43,37 @@ for bus in buses:
 WAIT_TIME = 5
 minutes_per_stop = 3
 
+# ---------------- VOICE INPUT (UPDATED FLOW) ----------------
+
 import speech_recognition as sr
 import time
 
 r = sr.Recognizer()
 
-# ===================== SOURCE =====================
-
 with sr.Microphone() as source:
 
+    # ---------------- GREETING ----------------
     speak("Vanakkam", "ta")
-
     time.sleep(0.5)
 
-    speak("Where are you now? Please say your current stop.", "en")
-    speak("நீங்கள் இப்போது எங்கு இருக்கிறீர்கள்? உங்கள் தற்போதைய நிறுத்தத்தை சொல்லுங்கள்.", "ta")
-    speak("आप अभी कहाँ हैं? अपना वर्तमान स्टॉप बताइए।", "hi")
+    # ---------------- SINGLE COMBINED PROMPT ----------------
+    speak("நீங்கள் இப்போது எங்கு இருக்கிறீர்கள்? மற்றும் எங்கு செல்ல விரும்புகிறீர்கள்?", "ta")
+    speak("Where are you now? And where do you want to go?", "en")
+    speak("आप अभी कहाँ हैं? और कहाँ जाना चाहते हैं?", "hi")
 
-    print("\n🎤 Listening for current location...")
-
-    r.adjust_for_ambient_noise(source, duration=2)
-    audio = r.listen(source)
-
-try:
-    source_text = r.recognize_google(audio, language="en-IN")
-except:
-    print("Could not understand source.")
-    exit()
-
-print("\nSource Heard:", source_text)
-
-
-# ===================== DESTINATION =====================
-
-with sr.Microphone() as source:
-
-    speak("Where do you want to go?", "en")
-    speak("நீங்கள் எங்கு செல்ல விரும்புகிறீர்கள்?", "ta")
-    speak("आप कहाँ जाना चाहते हैं?", "hi")
-
-    print("\n🎤 Listening for destination...")
+    print("\n🎤 Speak both places...")
 
     r.adjust_for_ambient_noise(source, duration=2)
     audio = r.listen(source)
 
 try:
-    destination_text = r.recognize_google(audio, language="en-IN")
+    text = r.recognize_google(audio, language="en-IN")
 except:
-    print("Could not understand destination.")
+    print("Could not understand speech.")
     exit()
 
-print("\nDestination Heard:", destination_text)
+print("\nHeard:", text)
+
 
 # ---------------- STOP DETECTION (FIXED) ----------------
 
@@ -279,24 +277,6 @@ else:
 
 print("\n🇮🇳 HINDI:\n", hindi)
 
-# ---------------- SPEECH ----------------
-
-pygame.mixer.init()
-
-def speak(text, lang):
-
-    filename = "voice.mp3"
-
-    gTTS(text=text, lang=lang).save(filename)
-
-    pygame.mixer.music.load(filename)
-    pygame.mixer.music.play()
-
-    while pygame.mixer.music.get_busy():
-        time.sleep(0.2)
-
-    pygame.mixer.music.unload()
-    os.remove(filename)
 
 # ---------------- VOICE OUTPUT ----------------
 
