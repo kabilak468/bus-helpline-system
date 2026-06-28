@@ -14,7 +14,7 @@
       "Thudiyalur"
     ],
     "current_stop": "Ganapathy",
-    "direction": "UP",
+    "direction": "DOWN",
     "wait_time": 5,
     "minutes_per_stop": 3
   }
