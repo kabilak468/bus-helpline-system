@@ -25,25 +25,57 @@ for bus in buses:
 WAIT_TIME = 5
 minutes_per_stop = 3
 
-# ---------------- VOICE INPUT ----------------
+import speech_recognition as sr
+import time
 
 r = sr.Recognizer()
 
-with sr.Microphone() as source:
-    print("🎤 Wait 3 seconds...")
-    r.adjust_for_ambient_noise(source, duration=3)
+# ===================== SOURCE =====================
 
-    print("🎤 Speak your route...")
+with sr.Microphone() as source:
+
+    speak("Vanakkam", "ta")
+
+    time.sleep(0.5)
+
+    speak("Where are you now? Please say your current stop.", "en")
+    speak("நீங்கள் இப்போது எங்கு இருக்கிறீர்கள்? உங்கள் தற்போதைய நிறுத்தத்தை சொல்லுங்கள்.", "ta")
+    speak("आप अभी कहाँ हैं? अपना वर्तमान स्टॉप बताइए।", "hi")
+
+    print("\n🎤 Listening for current location...")
+
+    r.adjust_for_ambient_noise(source, duration=2)
     audio = r.listen(source)
 
 try:
-    text = r.recognize_google(audio, language="en-IN")
+    source_text = r.recognize_google(audio, language="en-IN")
 except:
-    print("Speech not recognized.")
+    print("Could not understand source.")
     exit()
 
-print("\nGoogle Heard:")
-print(text)
+print("\nSource Heard:", source_text)
+
+
+# ===================== DESTINATION =====================
+
+with sr.Microphone() as source:
+
+    speak("Where do you want to go?", "en")
+    speak("நீங்கள் எங்கு செல்ல விரும்புகிறீர்கள்?", "ta")
+    speak("आप कहाँ जाना चाहते हैं?", "hi")
+
+    print("\n🎤 Listening for destination...")
+
+    r.adjust_for_ambient_noise(source, duration=2)
+    audio = r.listen(source)
+
+try:
+    destination_text = r.recognize_google(audio, language="en-IN")
+except:
+    print("Could not understand destination.")
+    exit()
+
+print("\nDestination Heard:", destination_text)
 
 # ---------------- STOP DETECTION (FIXED) ----------------
 
