@@ -174,7 +174,7 @@ elif status == "passed":
     english = f"Bus {bus['bus_no']} has crossed your stop and is at {current_loc}. Please wait {eta} minutes."
 
 else:
-    english = f"Bus {bus['bus_no']} is in opposite direction. Please wait {eta} minutes."
+    english = f"Bus {bus['bus_no']} is currently at {current_stop} and is moving in the opposite direction of your route. Estimated waiting time is {eta} minutes."
 
 # ---------------- TAMIL ----------------
 
@@ -188,7 +188,7 @@ elif status == "passed":
     tamil = f"பேருந்து உங்கள் நிறுத்தத்தை கடந்துவிட்டது. அது தற்போது {current_loc} இல் உள்ளது. {eta} நிமிடங்கள் காத்திருக்கவும்."
 
 else:
-    tamil = f"பேருந்து எதிர்திசையில் உள்ளது. {eta} நிமிடங்கள் காத்திருக்கவும்."
+    tamil = f"பேருந்து {bus['bus_no']} தற்போது {current_stop} இல் உள்ளது மற்றும் உங்கள் வழியின் எதிர்திசையில் செல்கிறது. சுமார் {eta} நிமிடங்கள் காத்திருக்கவும்."
 
 # ---------------- HINDI ----------------
 
@@ -202,7 +202,7 @@ elif status == "passed":
     hindi = f"बस आपके स्टॉप को पार कर चुकी है और अभी {current_loc} में है। {eta} मिनट प्रतीक्षा करें।"
 
 else:
-    hindi = f"बस विपरीत दिशा में है। कृपया प्रतीक्षा करें।"
+    hindi = f"बस {bus['bus_no']} अभी {current_stop} में है और आपकी दिशा के विपरीत जा रही है। कृपया लगभग {eta} मिनट प्रतीक्षा करें।"
 
 # ================= PRINT =================
 
